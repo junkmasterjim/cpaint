@@ -68,6 +68,7 @@ int main(void) {
   //--------------------------------------------------------------------------------
 
   //-Initialization-----------------------------------------------------------------
+  SetConfigFlags(FLAG_WINDOW_UNDECORATED);
   InitWindow(window_width, window_height, "cpaint");
   SetExitKey(KEY_Q);
 
