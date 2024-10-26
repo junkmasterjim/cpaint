@@ -7,6 +7,8 @@
 // texture mode
 // NOTE: then i think i can draw the brush over top with the DrawCircle method
 // and not interfere with anything
+// NOTE:
+// https://www.raylib.com/examples/textures/loader.html?name=textures_mouse_painting
 
 /* to compile
 clang -o cpaint paint.c -lraylib
