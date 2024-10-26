@@ -2,6 +2,7 @@
  *  to compile
  *  clang -o cpaint paint.c -lraylib && ./cpaint
  */
+
 #include "raylib.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,14 +16,6 @@ int main(void) {
   int cursor_radius = 64;
   Vector2 mouse;
   Vector2 mouse_wheel;
-  Color colors[NUM_COLORS] = {
-      RAYWHITE,  YELLOW,    GOLD,   ORANGE,     PINK,    RED,
-      MAROON,    GREEN,     LIME,   DARKGREEN,  SKYBLUE, BLUE,
-      DARKBLUE,  PURPLE,    VIOLET, DARKPURPLE, BEIGE,   BROWN,
-      DARKBROWN, LIGHTGRAY, GRAY,   DARKGRAY,   BLACK};
-  int selected_color = 22;
-  Rectangle color_rectangles[NUM_COLORS] = {};
-
   //--------------------------------------------------------------------------------
 
   //-Settings-----------------------------------------------------------------------
@@ -80,6 +73,14 @@ int main(void) {
 
   RenderTexture2D canvas = LoadRenderTexture(window_width, window_height);
   ClearBackground(RAYWHITE);
+  SetTargetFPS(120);
+
+  Color colors[NUM_COLORS] = {
+      RAYWHITE,  YELLOW,    GOLD,   ORANGE,     PINK,    RED,
+      MAROON,    GREEN,     LIME,   DARKGREEN,  SKYBLUE, BLUE,
+      DARKBLUE,  PURPLE,    VIOLET, DARKPURPLE, BEIGE,   BROWN,
+      DARKBROWN, LIGHTGRAY, GRAY,   DARKGRAY,   BLACK};
+  Rectangle color_rectangles[NUM_COLORS] = {};
 
   for (int i = 0; i < NUM_COLORS; i++) {
     color_rectangles[i].x = 4;
@@ -87,6 +88,9 @@ int main(void) {
     color_rectangles[i].width = 40;
     color_rectangles[i].height = window_height / 30.0;
   }
+
+  int selected_color = 22;
+  int color_hovered = -1;
   //--------------------------------------------------------------------------------
 
   //-Main-Loop----------------------------------------------------------------------
@@ -112,7 +116,7 @@ int main(void) {
     }
     if (IsKeyPressed(KEY_UP)) {
       if (selected_color == 0) {
-        selected_color = 22;
+        selected_color = NUM_COLORS - 1;
       } else
         selected_color--;
     }
@@ -120,10 +124,15 @@ int main(void) {
     // Select colors with mouse
     for (int i = 0; i < NUM_COLORS; i++) {
       if (CheckCollisionPointRec(mouse, color_rectangles[i])) {
+        color_hovered = i;
+
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
           selected_color = i;
         }
       }
+    }
+    if (!CheckCollisionPointRec(mouse, color_rectangles[color_hovered])) {
+      color_hovered = -1;
     }
 
     // Update the canvas when the mouse is clicked
@@ -157,8 +166,13 @@ int main(void) {
     DrawRectangle(48, 0, 2, window_height, GRAY);
 
     // Draw the color selection rectangles
-    for (int i = 0; i < NUM_COLORS; i++)
+    for (int i = 0; i < NUM_COLORS; i++) {
       DrawRectangleRec(color_rectangles[i], colors[i]);
+    }
+
+    if (color_hovered >= 0) {
+      DrawRectangleRec(color_rectangles[color_hovered], Fade(WHITE, 0.6f));
+    }
 
     EndDrawing();
     //--------------------------------------------------------------------------------
