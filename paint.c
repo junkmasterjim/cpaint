@@ -1,11 +1,12 @@
 /*  an ms paint-esque application written in c && opengl using raylib
  *  to compile
- *  clang -o cpaint paint.c -lraylib
+ *  clang -o cpaint paint.c -lraylib && ./cpaint
  */
-
 #include "raylib.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+const int NUM_COLORS = 23;
 
 int main(void) {
   //-Variables----------------------------------------------------------------------
@@ -14,6 +15,14 @@ int main(void) {
   int cursor_radius = 32;
   Vector2 mouse;
   Vector2 mouse_wheel;
+  Color colors[NUM_COLORS] = {
+      RAYWHITE,  YELLOW,    GOLD,   ORANGE,     PINK,    RED,
+      MAROON,    GREEN,     LIME,   DARKGREEN,  SKYBLUE, BLUE,
+      DARKBLUE,  PURPLE,    VIOLET, DARKPURPLE, BEIGE,   BROWN,
+      DARKBROWN, LIGHTGRAY, GRAY,   DARKGRAY,   BLACK};
+  int selected_color = 22;
+  Rectangle color_rectangles[NUM_COLORS] = {0};
+
   //--------------------------------------------------------------------------------
 
   //-Settings-----------------------------------------------------------------------
@@ -25,7 +34,7 @@ int main(void) {
 
   while (!WindowShouldClose()) {
     BeginDrawing();
-    ClearBackground(WHITE);
+    ClearBackground(RAYWHITE);
 
     int monitor = GetCurrentMonitor();
 
@@ -67,11 +76,17 @@ int main(void) {
 
   //-Initialization-----------------------------------------------------------------
   InitWindow(window_width, window_height, "cpaint");
-  HideCursor();
   SetExitKey(KEY_Q);
 
   RenderTexture2D canvas = LoadRenderTexture(window_width, window_height);
-  ClearBackground(WHITE);
+  ClearBackground(RAYWHITE);
+
+  for (int i = 0; i < NUM_COLORS; i++) {
+    color_rectangles[i].x = 4;
+    color_rectangles[i].y = 4 + (window_height / 30.0) * i + 2 * i;
+    color_rectangles[i].width = 40;
+    color_rectangles[i].height = window_height / 30.0;
+  }
   //--------------------------------------------------------------------------------
 
   //-Main-Loop----------------------------------------------------------------------
@@ -88,10 +103,12 @@ int main(void) {
       printf("mouse.y = %f\n", mouse.y);
     }
 
+    // Cycle through colors with arrow keys
+
     // Update the canvas when the mouse is clicked
     if (mouse.x > 50 && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
       BeginTextureMode(canvas);
-      DrawCircleV(mouse, cursor_radius, BLACK);
+      DrawCircleV(mouse, cursor_radius, colors[selected_color]);
       EndTextureMode();
     }
     //--------------------------------------------------------------------------------
@@ -102,14 +119,24 @@ int main(void) {
 
     // Draw the canvas
     DrawTextureRec(canvas.texture,
-                   (Rectangle){0, 0, (float)canvas.texture.width,
+                   (Rectangle){50, 0, (float)canvas.texture.width,
                                (float)-canvas.texture.height},
-                   (Vector2){0, 0}, WHITE);
+                   (Vector2){50, 0}, RAYWHITE);
+
+    // Draw the sidebar
+    DrawRectangle(0, 0, 48, window_height, LIGHTGRAY);
+    DrawRectangle(48, 0, 2, window_height, GRAY);
+
+    // Draw the color selection rectangles
+    for (int i = 0; i < NUM_COLORS; i++)
+      DrawRectangleRec(color_rectangles[i], colors[i]);
 
     // Draw the mouse guide
     if (mouse.x > 50) {
-      DrawCircleV(mouse, cursor_radius, BLACK);
-    }
+      HideCursor();
+      DrawCircleV(mouse, cursor_radius, colors[selected_color]);
+    } else
+      ShowCursor();
 
     EndDrawing();
     //--------------------------------------------------------------------------------
