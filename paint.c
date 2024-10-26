@@ -1,11 +1,28 @@
-/*  an ms paint-esque application written in c && opengl using raylib
- *  to compile
+/*  --- cpaint ---
+ *
+ *  An MSPaint style application. Written in C with Raylib.
+ *
+ *  --- controls ---
+ *  clear canvas:         'c'
+ *  brush:                'b'
+ *  pencil:               'p'
+ *  increase brush size:  'scroll+ || + (=)'
+ *  decrease brush size:  'scroll- || -'
+ *  next color:           'down arrow || right arrow'
+ *  previous color:       'up arrow || left arrow'
+ *
+ *  --- compile & run --
  *  clang -o cpaint paint.c -lraylib && ./cpaint
  */
 
-#include "raylib.h"
+// TODO: Add save functionality
+// TODO: Choose background color in settings
+// TODO: MAYBE add a paint bucket / fill tool
+
+#include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 const int NUM_COLORS = 23;
 
@@ -14,8 +31,17 @@ int main(void) {
   int window_width = 1280;
   int window_height = 720;
   int cursor_radius = 64;
+  int prev_radius;
   Vector2 mouse;
+  Vector2 prev_mouse;
   Vector2 mouse_wheel;
+  char *tool = "brush";
+  Color colors[NUM_COLORS] = {
+      RAYWHITE,  YELLOW,    GOLD,   ORANGE,     PINK,    RED,
+      MAROON,    GREEN,     LIME,   DARKGREEN,  SKYBLUE, BLUE,
+      DARKBLUE,  PURPLE,    VIOLET, DARKPURPLE, BEIGE,   BROWN,
+      DARKBROWN, LIGHTGRAY, GRAY,   DARKGRAY,   BLACK};
+  Rectangle color_rectangles[NUM_COLORS] = {};
   //--------------------------------------------------------------------------------
 
   //-Settings-----------------------------------------------------------------------
@@ -70,18 +96,10 @@ int main(void) {
   //-Initialization-----------------------------------------------------------------
   SetConfigFlags(FLAG_WINDOW_UNDECORATED);
   InitWindow(window_width, window_height, "cpaint");
-  SetExitKey(KEY_Q);
 
   RenderTexture2D canvas = LoadRenderTexture(window_width, window_height);
   ClearBackground(RAYWHITE);
   SetTargetFPS(120);
-
-  Color colors[NUM_COLORS] = {
-      RAYWHITE,  YELLOW,    GOLD,   ORANGE,     PINK,    RED,
-      MAROON,    GREEN,     LIME,   DARKGREEN,  SKYBLUE, BLUE,
-      DARKBLUE,  PURPLE,    VIOLET, DARKPURPLE, BEIGE,   BROWN,
-      DARKBROWN, LIGHTGRAY, GRAY,   DARKGRAY,   BLACK};
-  Rectangle color_rectangles[NUM_COLORS] = {};
 
   for (int i = 0; i < NUM_COLORS; i++) {
     color_rectangles[i].x = 4;
@@ -92,6 +110,7 @@ int main(void) {
 
   int selected_color = 22;
   int color_hovered = -1;
+
   //--------------------------------------------------------------------------------
 
   //-Main-Loop----------------------------------------------------------------------
@@ -100,23 +119,47 @@ int main(void) {
     mouse = GetMousePosition();
     mouse_wheel = GetMouseWheelMoveV();
 
-    // Update cursor size on scroll
-    if (mouse_wheel.y > 0 && cursor_radius <= 256) {
-      cursor_radius += 8;
-    } else if (mouse_wheel.y < 0 && cursor_radius > 8) {
-      cursor_radius -= 8;
-    } else if (mouse_wheel.y < 0 && cursor_radius == 8) {
+    // Select tool with B (brush) or P (pencil) (default B brush)
+    if (IsKeyPressed(KEY_P)) {
+      tool = "pencil";
+      prev_radius = cursor_radius;
       cursor_radius = 4;
+    } else if (IsKeyPressed(KEY_B)) {
+      tool = "brush";
+      if (prev_radius) {
+        cursor_radius = prev_radius;
+      }
+    }
+
+    // Clear canvas with C
+    if (IsKeyPressed(KEY_C)) {
+      BeginTextureMode(canvas);
+      ClearBackground(colors[0]);
+      EndTextureMode();
+    }
+
+    // Update cursor size on scroll as long as we are using a brush
+    if (strcmp(tool, "brush") == 0) {
+      if (mouse_wheel.y > 0 ||
+          IsKeyPressed(KEY_EQUAL) && cursor_radius <= 256) {
+        cursor_radius += 8;
+      } else if (mouse_wheel.y < 0 ||
+                 IsKeyPressed(KEY_MINUS) && cursor_radius > 8) {
+        cursor_radius -= 8;
+      } else if (mouse_wheel.y < 0 ||
+                 IsKeyPressed(KEY_MINUS) && cursor_radius == 8) {
+        cursor_radius = 4;
+      }
     }
 
     // Cycle through colors with arrow keys
-    if (IsKeyPressed(KEY_DOWN)) {
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_RIGHT)) {
       if (selected_color == NUM_COLORS - 1) {
         selected_color = 0;
       } else
         selected_color++;
     }
-    if (IsKeyPressed(KEY_UP)) {
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_LEFT)) {
       if (selected_color == 0) {
         selected_color = NUM_COLORS - 1;
       } else
@@ -138,11 +181,16 @@ int main(void) {
     }
 
     // Update the canvas when the mouse is clicked
-    if (mouse.x > 50 && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+    if (mouse.x > 50 && prev_mouse.x && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
       BeginTextureMode(canvas);
-      DrawCircleV(mouse, cursor_radius, colors[selected_color]);
+      if (strcmp(tool, "pencil") == 0) {
+        DrawLineEx(prev_mouse, mouse, cursor_radius, colors[selected_color]);
+      } else if (strcmp(tool, "brush") == 0) {
+        DrawCircleV(mouse, cursor_radius, colors[selected_color]);
+      }
       EndTextureMode();
     }
+    prev_mouse = GetMousePosition();
     //--------------------------------------------------------------------------------
 
     //-Draw---------------------------------------------------------------------------
