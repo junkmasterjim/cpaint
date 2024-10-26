@@ -102,10 +102,11 @@ int main(void) {
 
     // Update cursor size on scroll
     if (mouse_wheel.y > 0 && cursor_radius <= 256) {
-      cursor_radius++;
-    } else if (mouse_wheel.y < 0 && cursor_radius >= 4) {
-      cursor_radius--;
-      printf("mouse.y = %f\n", mouse.y);
+      cursor_radius += 8;
+    } else if (mouse_wheel.y < 0 && cursor_radius > 8) {
+      cursor_radius -= 8;
+    } else if (mouse_wheel.y < 0 && cursor_radius == 8) {
+      cursor_radius = 4;
     }
 
     // Cycle through colors with arrow keys
@@ -159,6 +160,11 @@ int main(void) {
     if (mouse.x > 50 && !IsKeyDown(KEY_LEFT_SHIFT)) {
       HideCursor();
       DrawCircleV(mouse, cursor_radius, colors[selected_color]);
+      if (selected_color == NUM_COLORS - 1) {
+        DrawCircleLinesV(mouse, cursor_radius + 1, LIGHTGRAY);
+      } else
+        DrawCircleLinesV(mouse, cursor_radius + 1, BLACK);
+
     } else
       ShowCursor();
 
