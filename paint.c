@@ -140,14 +140,14 @@ int main(void) {
 
     // Update cursor size on scroll as long as we are using a brush
     if (strcmp(tool, "brush") == 0) {
-      if (mouse_wheel.y > 0 ||
-          IsKeyPressed(KEY_EQUAL) && cursor_radius <= 256) {
+      if ((mouse_wheel.y > 0 || IsKeyPressed(KEY_EQUAL)) &&
+          cursor_radius <= 256) {
         cursor_radius += 8;
-      } else if (mouse_wheel.y < 0 ||
-                 IsKeyPressed(KEY_MINUS) && cursor_radius > 8) {
+      } else if ((mouse_wheel.y < 0 || IsKeyPressed(KEY_MINUS)) &&
+                 cursor_radius > 8) {
         cursor_radius -= 8;
-      } else if (mouse_wheel.y < 0 ||
-                 IsKeyPressed(KEY_MINUS) && cursor_radius == 8) {
+      } else if ((mouse_wheel.y < 0 || IsKeyPressed(KEY_MINUS)) &&
+                 cursor_radius <= 8) {
         cursor_radius = 4;
       }
     }
