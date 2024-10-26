@@ -1,83 +1,124 @@
-// an ms paint-esque application written in c && opengl using raylib
-
-// NOTE: brush should not be able to draw over our menu / sidebar
-// FIX: easy fix with if mosue.x < 50
-
-// PERF: i need to render the canvas by using a RenderTexture2D and the Render
-// texture mode
-// NOTE: then i think i can draw the brush over top with the DrawCircle method
-// and not interfere with anything
-// NOTE:
-// https://www.raylib.com/examples/textures/loader.html?name=textures_mouse_painting
-
-/* to compile
-clang -o cpaint paint.c -lraylib
-*/
+/*  an ms paint-esque application written in c && opengl using raylib
+ *  to compile
+ *  clang -o cpaint paint.c -lraylib
+ */
 
 #include "raylib.h"
-#include "stdio.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-double window_width = 1280;
-double window_height = 720;
-int cursor_radius = 10;
-int canvas_width;
-int canvas_height;
-
-// DrawSidebar will draw the sidebar which allows us to switch our tools
-void DrawSidebar() {
-  // sidebar
-  DrawRectangle(0, 0, 48, window_height, LIGHTGRAY);
-  // border
-  DrawRectangle(48, 0, 2, window_height, GRAY);
-
-  // buttons
-  DrawRectangle(4, 0 + 4, 40, 40, BLACK);
-  DrawRectangle(4, 48 + 8, 40, 40, BLACK);
-  DrawRectangle(4, 96 + 12, 40, 40, BLACK);
-  DrawRectangle(4, 144 + 16, 40, 40, BLACK);
-}
-
-void HandleBrush() {
-  int mouse_x = GetMouseX();
-  int mouse_y = GetMouseY();
-
-  if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) == true) {
-    DrawCircle(mouse_x, mouse_y, cursor_radius, RAYWHITE);
-
-    printf("%i %i", mouse_x, mouse_y);
-  }
-}
-
-// main function to run our app
 int main(void) {
-  // config before running window
-  canvas_width = window_width - 50;
-  canvas_height = window_height;
+  //-Variables----------------------------------------------------------------------
+  int window_width = 1280;
+  int window_height = 720;
+  int cursor_radius = 32;
+  Vector2 mouse;
+  Vector2 mouse_wheel;
+  //--------------------------------------------------------------------------------
 
-  // open new window
-  InitWindow(window_width, window_height, "cpaint");
-  // HideCursor();
-  SetExitKey(KEY_Q);
+  //-Settings-----------------------------------------------------------------------
+  InitWindow(400, 300, "cpaint settings");
+  SetExitKey(KEY_ENTER);
 
-  // main loop
+  char *window_height_string = (char *)malloc(24 * sizeof(char));
+  char *window_width_string = (char *)malloc(24 * sizeof(char));
+
   while (!WindowShouldClose()) {
     BeginDrawing();
+    ClearBackground(WHITE);
 
-    DrawSidebar();
+    int monitor = GetCurrentMonitor();
 
-    DrawRectangle(50, 0, canvas_width, canvas_height, BLACK);
-    HandleBrush();
+    sprintf(window_width_string, "document width: %d", window_width);
+    if (IsKeyDown(KEY_RIGHT) &&
+        window_width <= GetMonitorWidth(monitor) * 0.9) {
+      window_width++;
+    } else if (IsKeyDown(KEY_LEFT) && window_width >= 401) {
+      window_width--;
+    }
 
-    // display some text in the center of the screen
-    char *text = "cpaint";
-    Vector2 text_wh = MeasureTextEx(GetFontDefault(), text, 32, 1);
-    DrawText(text, window_width / 2 - text_wh.x / 2,
-             window_height / 2 - text_wh.y / 2, 32, GRAY);
+    sprintf(window_height_string, "document height: %d", window_height);
+    if (IsKeyDown(KEY_UP) && window_height <= GetMonitorHeight(monitor) * 0.8) {
+      window_height++;
+    } else if (IsKeyDown(KEY_DOWN) && window_height >= 301) {
+      window_height--;
+    }
 
-    // draw sidebar
+    // Escape key cancels program and frees malloc
+    if (IsKeyPressed(KEY_ESCAPE)) {
+      CloseWindow();
+      free(window_height_string);
+      free(window_width_string);
+      return 0;
+    }
+
+    DrawText(window_width_string, 4, 4, 20, GRAY);
+    DrawText(window_height_string, 4, 28, 20, GRAY);
+
+    DrawText("press 'enter' to accept", 4, 256 - 4, 20, GRAY);
+    DrawText("press 'esc' to cancel", 4, 280 - 4, 20, GRAY);
+
     EndDrawing();
   }
-
   CloseWindow();
+  free(window_height_string);
+  free(window_width_string);
+  //--------------------------------------------------------------------------------
+
+  //-Initialization-----------------------------------------------------------------
+  InitWindow(window_width, window_height, "cpaint");
+  HideCursor();
+  SetExitKey(KEY_Q);
+
+  RenderTexture2D canvas = LoadRenderTexture(window_width, window_height);
+  ClearBackground(WHITE);
+  //--------------------------------------------------------------------------------
+
+  //-Main-Loop----------------------------------------------------------------------
+  while (!WindowShouldClose()) {
+    //-Update-------------------------------------------------------------------------
+    mouse = GetMousePosition();
+    mouse_wheel = GetMouseWheelMoveV();
+
+    // Update cursor size on scroll
+    if (mouse_wheel.y > 0 && cursor_radius <= 256) {
+      cursor_radius++;
+    } else if (mouse_wheel.y < 0 && cursor_radius >= 4) {
+      cursor_radius--;
+      printf("mouse.y = %f\n", mouse.y);
+    }
+
+    // Update the canvas when the mouse is clicked
+    if (mouse.x > 50 && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+      BeginTextureMode(canvas);
+      DrawCircleV(mouse, cursor_radius, BLACK);
+      EndTextureMode();
+    }
+    //--------------------------------------------------------------------------------
+
+    //-Draw---------------------------------------------------------------------------
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+
+    // Draw the canvas
+    DrawTextureRec(canvas.texture,
+                   (Rectangle){0, 0, (float)canvas.texture.width,
+                               (float)-canvas.texture.height},
+                   (Vector2){0, 0}, WHITE);
+
+    // Draw the mouse guide
+    if (mouse.x > 50) {
+      DrawCircleV(mouse, cursor_radius, BLACK);
+    }
+
+    EndDrawing();
+    //--------------------------------------------------------------------------------
+  }
+
+  //-De-Initialization--------------------------------------------------------------
+  UnloadRenderTexture(canvas);
+  CloseWindow();
+  //--------------------------------------------------------------------------------
+
   return 0;
 }
