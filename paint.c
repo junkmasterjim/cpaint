@@ -12,7 +12,7 @@ int main(void) {
   //-Variables----------------------------------------------------------------------
   int window_width = 1280;
   int window_height = 720;
-  int cursor_radius = 32;
+  int cursor_radius = 64;
   Vector2 mouse;
   Vector2 mouse_wheel;
   Color colors[NUM_COLORS] = {
@@ -117,6 +117,15 @@ int main(void) {
         selected_color--;
     }
 
+    // Select colors with mouse
+    for (int i = 0; i < NUM_COLORS; i++) {
+      if (CheckCollisionPointRec(mouse, color_rectangles[i])) {
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+          selected_color = i;
+        }
+      }
+    }
+
     // Update the canvas when the mouse is clicked
     if (mouse.x > 50 && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
       BeginTextureMode(canvas);
@@ -136,7 +145,8 @@ int main(void) {
                    (Vector2){50, 0}, WHITE);
 
     // Draw the mouse guide
-    if (mouse.x > 50) {
+    // NOTE: Left shift will show the mouse
+    if (mouse.x > 50 && !IsKeyDown(KEY_LEFT_SHIFT)) {
       HideCursor();
       DrawCircleV(mouse, cursor_radius, colors[selected_color]);
     } else
