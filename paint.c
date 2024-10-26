@@ -21,7 +21,7 @@ int main(void) {
       DARKBLUE,  PURPLE,    VIOLET, DARKPURPLE, BEIGE,   BROWN,
       DARKBROWN, LIGHTGRAY, GRAY,   DARKGRAY,   BLACK};
   int selected_color = 22;
-  Rectangle color_rectangles[NUM_COLORS] = {0};
+  Rectangle color_rectangles[NUM_COLORS] = {};
 
   //--------------------------------------------------------------------------------
 
@@ -104,6 +104,18 @@ int main(void) {
     }
 
     // Cycle through colors with arrow keys
+    if (IsKeyPressed(KEY_DOWN)) {
+      if (selected_color == NUM_COLORS - 1) {
+        selected_color = 0;
+      } else
+        selected_color++;
+    }
+    if (IsKeyPressed(KEY_UP)) {
+      if (selected_color == 0) {
+        selected_color = 22;
+      } else
+        selected_color--;
+    }
 
     // Update the canvas when the mouse is clicked
     if (mouse.x > 50 && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
@@ -121,7 +133,14 @@ int main(void) {
     DrawTextureRec(canvas.texture,
                    (Rectangle){50, 0, (float)canvas.texture.width,
                                (float)-canvas.texture.height},
-                   (Vector2){50, 0}, RAYWHITE);
+                   (Vector2){50, 0}, WHITE);
+
+    // Draw the mouse guide
+    if (mouse.x > 50) {
+      HideCursor();
+      DrawCircleV(mouse, cursor_radius, colors[selected_color]);
+    } else
+      ShowCursor();
 
     // Draw the sidebar
     DrawRectangle(0, 0, 48, window_height, LIGHTGRAY);
@@ -130,13 +149,6 @@ int main(void) {
     // Draw the color selection rectangles
     for (int i = 0; i < NUM_COLORS; i++)
       DrawRectangleRec(color_rectangles[i], colors[i]);
-
-    // Draw the mouse guide
-    if (mouse.x > 50) {
-      HideCursor();
-      DrawCircleV(mouse, cursor_radius, colors[selected_color]);
-    } else
-      ShowCursor();
 
     EndDrawing();
     //--------------------------------------------------------------------------------
