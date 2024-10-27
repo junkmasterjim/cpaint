@@ -214,7 +214,7 @@ int main(void) {
     }
     if (is_saving) {
       save_message_counter++;
-      if (save_message_counter >= 120) {
+      if (save_message_counter >= 240) {
         is_saving = false;
         save_message_counter = 0;
       }
