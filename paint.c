@@ -3,6 +3,7 @@
  *  An MSPaint style application. Written in C with Raylib.
  *
  *  --- controls ---
+ *  paint:                'left mouse button'
  *  clear canvas:         'c'
  *  brush:                'b'
  *  pencil:               'p'
@@ -10,14 +11,18 @@
  *  decrease brush size:  'scroll- || -'
  *  next color:           'down arrow || right arrow'
  *  previous color:       'up arrow || left arrow'
+ *  save as:              'ctrl-s'
+ *
+ * TODO: paint bucket: 'g'
+ * TODO: undo: 'ctrl-z'
+ * TODO: redo: 'ctrl-shift-z'
  *
  *  --- compile & run --
  *  clang -o cpaint paint.c -lraylib && ./cpaint
  */
 
-// TODO: Add save functionality
 // TODO: Choose background color in settings
-// TODO: MAYBE add a paint bucket / fill tool
+// TODO: Maybe add an undo and redo tree? would be cool
 
 #include <raylib.h>
 #include <stdio.h>
@@ -42,6 +47,9 @@ int main(void) {
       DARKBLUE,  PURPLE,    VIOLET, DARKPURPLE, BEIGE,   BROWN,
       DARKBROWN, LIGHTGRAY, GRAY,   DARKGRAY,   BLACK};
   Rectangle color_rectangles[NUM_COLORS] = {};
+  bool is_saving = false;
+  int save_message_counter = 0;
+  char *filename = (char *)malloc(16 * sizeof(char));
   //--------------------------------------------------------------------------------
 
   //-Settings-----------------------------------------------------------------------
@@ -120,11 +128,11 @@ int main(void) {
     mouse_wheel = GetMouseWheelMoveV();
 
     // Select tool with B (brush) or P (pencil) (default B brush)
-    if (IsKeyPressed(KEY_P)) {
+    if (IsKeyPressed(KEY_P) && strcmp(tool, "pencil") != 0) {
       tool = "pencil";
       prev_radius = cursor_radius;
       cursor_radius = 4;
-    } else if (IsKeyPressed(KEY_B)) {
+    } else if (IsKeyPressed(KEY_B) && strcmp(tool, "brush") != 0) {
       tool = "brush";
       if (prev_radius) {
         cursor_radius = prev_radius;
@@ -191,6 +199,25 @@ int main(void) {
       EndTextureMode();
     }
     prev_mouse = GetMousePosition();
+
+    // Save file with 'ctrl-s'
+    if (!is_saving && IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_S)) {
+      int r = rand();
+      sprintf(filename, "%d.png", r);
+
+      Image canvas_image = LoadImageFromTexture(canvas.texture);
+      ImageFlipVertical(&canvas_image);
+      ExportImage(canvas_image, filename);
+
+      is_saving = true;
+    }
+    if (is_saving) {
+      save_message_counter++;
+      if (save_message_counter >= 120) {
+        is_saving = false;
+        save_message_counter = 0;
+      }
+    }
     //--------------------------------------------------------------------------------
 
     //-Draw---------------------------------------------------------------------------
@@ -229,11 +256,26 @@ int main(void) {
       DrawRectangleRec(color_rectangles[color_hovered], Fade(WHITE, 0.6f));
     }
 
+    // Draw save dialog if we are saving
+    if (is_saving) {
+
+      char *saved_as = malloc(24 * sizeof(char));
+      strcat(saved_as, "Image saved: ");
+      strcat(saved_as, filename);
+
+      DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(),
+                    Fade(RAYWHITE, 0.8f));
+      DrawRectangle(0, 150, GetScreenWidth(), 80, BLACK);
+      DrawText(saved_as, (window_width / 2) - MeasureText(saved_as, 20) / 2,
+               180, 20, RAYWHITE);
+    }
+
     EndDrawing();
     //--------------------------------------------------------------------------------
   }
 
   //-De-Initialization--------------------------------------------------------------
+  free(filename);
   UnloadRenderTexture(canvas);
   CloseWindow();
   //--------------------------------------------------------------------------------
