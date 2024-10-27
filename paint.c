@@ -21,6 +21,7 @@
  *  clang -o cpaint paint.c -lraylib && ./cpaint
  */
 
+// FIX: extra space on save where sidebar is
 // TODO: Choose background color in settings
 // TODO: Maybe add an undo and redo tree? would be cool
 
@@ -239,19 +240,16 @@ int main(void) {
         DrawCircleLinesV(mouse, cursor_radius + 1, LIGHTGRAY);
       } else
         DrawCircleLinesV(mouse, cursor_radius + 1, BLACK);
-
     } else
       ShowCursor();
 
     // Draw the sidebar
     DrawRectangle(0, 0, 48, window_height, LIGHTGRAY);
     DrawRectangle(48, 0, 2, window_height, GRAY);
-
     // Draw the color selection rectangles
     for (int i = 0; i < NUM_COLORS; i++) {
       DrawRectangleRec(color_rectangles[i], colors[i]);
     }
-
     if (color_hovered >= 0) {
       DrawRectangleRec(color_rectangles[color_hovered], Fade(WHITE, 0.6f));
     }
