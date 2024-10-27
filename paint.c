@@ -11,7 +11,7 @@
  *  decrease brush size:  'scroll- || -'
  *  next color:           'down arrow || right arrow'
  *  previous color:       'up arrow || left arrow'
- *  save as:              'ctrl-s'
+ *  save:              'ctrl-s'
  *
  * TODO: paint bucket: 'g'
  * TODO: undo: 'ctrl-z'
@@ -22,7 +22,8 @@
  */
 
 // TODO: Choose background color in settings
-// TODO: Maybe add an undo and redo tree? would be cool
+// TODO: add an undo and redo tree? would be cool
+// FIX:  pencil doesnt register when > 50px from sidebar
 
 #include <raylib.h>
 #include <stdio.h>
@@ -88,9 +89,9 @@ int main(void) {
       return 0;
     }
 
+    // Draw window dimensions selection
     DrawText(window_width_string, 4, 4, 20, GRAY);
     DrawText(window_height_string, 4, 28, 20, GRAY);
-
     DrawText("press 'enter' to accept", 4, 256 - 4, 20, GRAY);
     DrawText("press 'esc' to cancel", 4, 280 - 4, 20, GRAY);
 
@@ -118,7 +119,6 @@ int main(void) {
 
   int selected_color = 22;
   int color_hovered = -1;
-
   //--------------------------------------------------------------------------------
 
   //-Main-Loop----------------------------------------------------------------------
@@ -146,7 +146,7 @@ int main(void) {
       EndTextureMode();
     }
 
-    // Update cursor size on scroll as long as we are using a brush
+    // Update cursor size on scroll for brush
     if (strcmp(tool, "brush") == 0) {
       if ((mouse_wheel.y > 0 || IsKeyPressed(KEY_EQUAL)) &&
           cursor_radius <= 256) {
@@ -157,6 +157,19 @@ int main(void) {
       } else if ((mouse_wheel.y < 0 || IsKeyPressed(KEY_MINUS)) &&
                  cursor_radius <= 8) {
         cursor_radius = 4;
+      }
+    }
+    // Update cursor size on scroll for pencil
+    if (strcmp(tool, "pencil") == 0) {
+      if ((mouse_wheel.y > 0 || IsKeyPressed(KEY_EQUAL)) &&
+          cursor_radius <= 6) {
+        cursor_radius += 2;
+      } else if ((mouse_wheel.y < 0 || IsKeyPressed(KEY_MINUS)) &&
+                 cursor_radius > 2) {
+        cursor_radius -= 2;
+      } else if ((mouse_wheel.y < 0 || IsKeyPressed(KEY_MINUS)) &&
+                 cursor_radius <= 2) {
+        cursor_radius = 2;
       }
     }
 
@@ -250,6 +263,7 @@ int main(void) {
     // Draw the sidebar
     DrawRectangle(0, 0, 48, window_height, LIGHTGRAY);
     DrawRectangle(48, 0, 2, window_height, GRAY);
+
     // Draw the color selection rectangles
     for (int i = 0; i < NUM_COLORS; i++) {
       DrawRectangleRec(color_rectangles[i], colors[i]);
