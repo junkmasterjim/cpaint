@@ -21,7 +21,6 @@
  *  clang -o cpaint paint.c -lraylib && ./cpaint
  */
 
-// FIX: extra space on save where sidebar is
 // TODO: Choose background color in settings
 // TODO: Maybe add an undo and redo tree? would be cool
 
@@ -106,7 +105,7 @@ int main(void) {
   SetConfigFlags(FLAG_WINDOW_UNDECORATED);
   InitWindow(window_width, window_height, "cpaint");
 
-  RenderTexture2D canvas = LoadRenderTexture(window_width, window_height);
+  RenderTexture2D canvas = LoadRenderTexture(window_width - 50, window_height);
   ClearBackground(RAYWHITE);
   SetTargetFPS(120);
 
@@ -190,12 +189,17 @@ int main(void) {
     }
 
     // Update the canvas when the mouse is clicked
-    if (mouse.x > 50 && prev_mouse.x && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+    Vector2 canvas_mouse = (Vector2){mouse.x - 50, mouse.y};
+    Vector2 canvas_prev_mouse = (Vector2){prev_mouse.x - 50, prev_mouse.y};
+
+    if (canvas_mouse.x > 50 && canvas_prev_mouse.x &&
+        IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
       BeginTextureMode(canvas);
       if (strcmp(tool, "pencil") == 0) {
-        DrawLineEx(prev_mouse, mouse, cursor_radius, colors[selected_color]);
+        DrawLineEx(canvas_prev_mouse, canvas_mouse, cursor_radius,
+                   colors[selected_color]);
       } else if (strcmp(tool, "brush") == 0) {
-        DrawCircleV(mouse, cursor_radius, colors[selected_color]);
+        DrawCircleV(canvas_mouse, cursor_radius, colors[selected_color]);
       }
       EndTextureMode();
     }
@@ -227,7 +231,7 @@ int main(void) {
 
     // Draw the canvas
     DrawTextureRec(canvas.texture,
-                   (Rectangle){50, 0, (float)canvas.texture.width,
+                   (Rectangle){0, 0, (float)canvas.texture.width,
                                (float)-canvas.texture.height},
                    (Vector2){50, 0}, WHITE);
 
