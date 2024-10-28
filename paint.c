@@ -22,7 +22,14 @@
 // TODO: Choose background color in settings
 // TODO: maybe paint bucket too
 
-// TODO: undo looks and works better but still has some bugs
+// FIX: undo looks and works better but still has some bugs
+// FIX: when selecting multiple colors, the stroke seems to lose track of where
+// we are deleting.
+// step 1: draw a bg in a color
+// step 2: draw an accent in any other color
+// step 3: write 1 to 10 in a different color from the first 2
+// step 4: press 'ctrl-z' and you should see the first few numbers removed, and
+//         both backgrounds deleted
 
 #include <raylib.h>
 #include <stdio.h>
