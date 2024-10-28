@@ -22,7 +22,7 @@
 // TODO: Choose background color in settings
 // TODO: maybe paint bucket too
 
-// TODO: need to implement tool, color, and radius into stroke
+// TODO: undo looks and works better but still has some bugs
 
 #include <raylib.h>
 #include <stdio.h>
@@ -33,6 +33,26 @@
 #define MAX_UNDOS 10         // Max undo steps allowed
 #define INITIAL_CAPACITY 100 // Starting capacity for points in a stroke
 #define NUM_COLORS 23        // The amount of colors available for use
+
+//-Variables----------------------------------------------------------------------
+int window_width = 1280;
+int window_height = 720;
+int cursor_radius = 64;
+int prev_radius;
+Vector2 mouse;
+Vector2 prev_mouse;
+Vector2 mouse_wheel;
+char *tool = "brush";
+Color colors[NUM_COLORS] = {
+    RAYWHITE,  YELLOW,    GOLD,   ORANGE,     PINK,    RED,
+    MAROON,    GREEN,     LIME,   DARKGREEN,  SKYBLUE, BLUE,
+    DARKBLUE,  PURPLE,    VIOLET, DARKPURPLE, BEIGE,   BROWN,
+    DARKBROWN, LIGHTGRAY, GRAY,   DARKGRAY,   BLACK};
+int selected_color;
+Rectangle color_rectangles[NUM_COLORS] = {};
+bool is_saving = false;
+int save_message_counter = 0;
+//--------------------------------------------------------------------------------
 
 // Struct to store a Point as a (Vector2){int x, y}
 typedef struct Vector2 Point;
@@ -59,6 +79,9 @@ void initStroke(Stroke *stroke) {
   stroke->points = (Point *)malloc(sizeof(Point) * INITIAL_CAPACITY);
   stroke->point_count = 0;
   stroke->max_points = INITIAL_CAPACITY;
+  stroke->color = selected_color;
+  stroke->radius = cursor_radius;
+  stroke->tool = tool;
 }
 
 // Init undo history
@@ -79,6 +102,9 @@ void addToStroke(Stroke *stroke, int x, int y) {
   stroke->points[stroke->point_count].x = x;
   stroke->points[stroke->point_count].y = y;
   stroke->point_count++;
+  stroke->color = selected_color;
+  stroke->radius = cursor_radius;
+  stroke->tool = tool;
 }
 
 // Add a completed stroke to the undo history
@@ -109,25 +135,8 @@ void freeUndoHistory(UndoHistory *history) {
 
 //-MAIN-PROGRAM-ENTRY-POINT-------------------------------------------------------
 int main(void) {
-  //-Variables----------------------------------------------------------------------
-  int window_width = 1280;
-  int window_height = 720;
-  int cursor_radius = 64;
-  int prev_radius;
-  Vector2 mouse;
-  Vector2 prev_mouse;
-  Vector2 mouse_wheel;
-  char *tool = "brush";
-  Color colors[NUM_COLORS] = {
-      RAYWHITE,  YELLOW,    GOLD,   ORANGE,     PINK,    RED,
-      MAROON,    GREEN,     LIME,   DARKGREEN,  SKYBLUE, BLUE,
-      DARKBLUE,  PURPLE,    VIOLET, DARKPURPLE, BEIGE,   BROWN,
-      DARKBROWN, LIGHTGRAY, GRAY,   DARKGRAY,   BLACK};
-  Rectangle color_rectangles[NUM_COLORS] = {};
-  bool is_saving = false;
-  int save_message_counter = 0;
+
   char *filename = (char *)malloc(16 * sizeof(char));
-  //--------------------------------------------------------------------------------
 
   //-Settings-----------------------------------------------------------------------
   InitWindow(400, 300, "cpaint settings");
@@ -174,6 +183,7 @@ int main(void) {
     EndDrawing();
   }
   CloseWindow();
+
   free(window_height_string);
   free(window_width_string);
   //--------------------------------------------------------------------------------
@@ -193,7 +203,6 @@ int main(void) {
     color_rectangles[i].height = window_height / 30.0;
   }
 
-  int selected_color = 22;
   int color_hovered = -1;
 
   UndoHistory history;
@@ -329,15 +338,17 @@ int main(void) {
         history.undo_count--;
         history.current_undo_index =
             (history.current_undo_index - 1 + MAX_UNDOS) % MAX_UNDOS;
+
         // Redraw the canvas
         BeginTextureMode(canvas);
         ClearBackground(colors[0]);
         for (int i = 0; i < history.undo_count; i++) {
           int index = (history.current_undo_index - i + MAX_UNDOS) % MAX_UNDOS;
           Stroke *s = &history.undos[index];
+
           for (int j = 1; j < s->point_count; j++) {
             DrawCircleV((Vector2){s->points[j - 1].x, s->points[j - 1].y},
-                        cursor_radius, colors[selected_color]);
+                        s->radius, colors[s->color]);
           }
         }
         EndTextureMode();
