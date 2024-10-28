@@ -22,14 +22,11 @@
 // TODO: Choose background color in settings
 // TODO: maybe paint bucket too
 
-// FIX: undo looks and works better but still has some bugs
-// FIX: when selecting multiple colors, the stroke seems to lose track of where
-// we are deleting.
-// step 1: draw a bg in a color
-// step 2: draw an accent in any other color
-// step 3: write 1 to 10 in a different color from the first 2
-// step 4: press 'ctrl-z' and you should see the first few numbers removed, and
-//         both backgrounds deleted
+// NOTE: The entire canvas is repainted every time we undo. Because of this, we
+// end up removing anything not in the array if we are at max undos. i.e.: if we
+// have 100 max undos, and 150 strokes in our session, when we hit undo we will
+// remove the most recent action, as well as the first 50 which are no longer in
+// our array
 
 #include <raylib.h>
 #include <stdio.h>
@@ -37,7 +34,7 @@
 #include <string.h>
 
 //-Definitions-&-Constants--------------------------------------------------------
-#define MAX_UNDOS 10         // Max undo steps allowed
+#define MAX_UNDOS 100        // Max undo steps allowed
 #define INITIAL_CAPACITY 100 // Starting capacity for points in a stroke
 #define NUM_COLORS 23        // The amount of colors available for use
 
