@@ -11,7 +11,7 @@
  *  decrease brush size:  'scroll- || -'
  *  next color:           'down arrow || right arrow'
  *  previous color:       'up arrow || left arrow'
- *  save:              'ctrl-s'
+ *  save:                 'ctrl-s'
  *
  * TODO: paint bucket: 'g'
  * TODO: undo: 'ctrl-z'
@@ -22,8 +22,34 @@
  */
 
 // TODO: Choose background color in settings
+
 // TODO: add an undo and redo tree? would be cool
-// FIX:  pencil doesnt register when > 50px from sidebar
+// - If the left mouse button is down:
+//     - Capture the current mouse position (x, y)
+//     - Add this position as a new point to the current stroke
+//       - If the points array is full, use realloc to expand its size
+// - If the left mouse button is not down and there are points in the current
+// stroke:
+//     - The brush stroke is complete, so:
+//         - Save the current stroke as a new undo step in the UndoManager
+//         - Prepare a new empty stroke for the next drawing session
+
+// TODO:
+// - Render the current stroke on the screen if the mouse is down
+// - Render all strokes in the undo history if needed
+// - If an undo is requested, retrieve the most recent stroke from the undo
+// history
+// - Remove the latest stroke and render the canvas without it
+
+// TODO:
+// - If an undo is requested, retrieve the most recent stroke from the undo
+// history
+
+// TODO:
+// - Free all dynamically allocated memory in the UndoManager to prevent memory
+// leaks
+// - Free any remaining points in the current stroke if needed/ - Remove the
+// latest stroke and render the canvas without it
 
 #include <raylib.h>
 #include <stdio.h>
@@ -205,7 +231,7 @@ int main(void) {
     Vector2 canvas_mouse = (Vector2){mouse.x - 50, mouse.y};
     Vector2 canvas_prev_mouse = (Vector2){prev_mouse.x - 50, prev_mouse.y};
 
-    if (canvas_mouse.x > 50 && canvas_prev_mouse.x &&
+    if (canvas_mouse.x > 0 && canvas_prev_mouse.x &&
         IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
       BeginTextureMode(canvas);
       if (strcmp(tool, "pencil") == 0) {
