@@ -6,7 +6,6 @@
  *  paint:                'left mouse button'
  *  clear canvas:         'c'
  *  brush:                'b'
- *  cycle brush shapes:   'tab'
  *  pencil:               'p'
  *  increase brush size:  'scroll+ || + (=)'
  *  decrease brush size:  'scroll- || -'
@@ -25,9 +24,7 @@
 // TODO: hold shift to draw a straight line in pencil mode
 // TODO: different shapes for brushes
 
-// FIX: undo should check for shapes when re rendering canvas
-
-// WARNING: The entire canvas is repainted every time we undo based on the undo
+// NOTE: The entire canvas is repainted every time we undo based on the undo
 // tree array. Because of this, we
 // end up removing anything not in the array if we are at max undos. i.e.: if we
 // have 25 max undos, and 100 strokes in our session, when we hit undo we will
@@ -75,7 +72,6 @@ typedef struct {
   int point_count; // Number of points currently stored
   int max_points;  // Max capacity of *points array
   char *tool;      // Tool being used 'pencil' or 'brush'
-  char *shape;     // Brush shape
   int color;       // Color used
   int radius;      // Radius used
 } Stroke;
@@ -95,23 +91,17 @@ void initStroke(Stroke *stroke) {
   stroke->color = selected_color;
   stroke->radius = cursor_radius;
   stroke->tool = tool;
-  stroke->shape = brush_shape;
 }
 
 // Init undo history
 void initHistory(UndoHistory *history) {
   history->current_undo_index = -1;
   history->undo_count = 0;
-  for (int i = 0; i < MAX_UNDOS; i++) {
-    history->undos[i].points = NULL;
-    history->undos[i].point_count = 0;
-    history->undos[i].max_points = 0;
-  }
 }
 
 // Adds a point to the current stroke, resizing if necessary
 void addToStroke(Stroke *stroke, int x, int y, int color, int radius,
-                 char *stroke_tool, char *shape) {
+                 char *stroke_tool) {
   // Check if we need to resize points array
   if (stroke->point_count >= stroke->max_points) {
     stroke->max_points *= 2;
@@ -125,9 +115,9 @@ void addToStroke(Stroke *stroke, int x, int y, int color, int radius,
   stroke->color = color;
   stroke->radius = radius;
   stroke->tool = stroke_tool;
-  stroke->shape = shape;
 }
 
+// Add a completed stroke to the undo history
 void addUndoStep(UndoHistory *history, Stroke *stroke) {
   // Advance to next undo step
   history->current_undo_index = (history->current_undo_index + 1) % MAX_UNDOS;
@@ -138,28 +128,10 @@ void addUndoStep(UndoHistory *history, Stroke *stroke) {
   // Free any existing stroke points in the current undo slot
   free(history->undos[history->current_undo_index].points);
 
-  // Allocate new memory for points in the undo history
-  history->undos[history->current_undo_index].points =
-      (Point *)malloc(stroke->point_count * sizeof(Point));
-  if (history->undos[history->current_undo_index].points == NULL) {
-    fprintf(stderr, "Failed to allocate memory for undo history\n");
-    exit(1);
-  }
-
-  // Copy the stroke data into the undo history
-  history->undos[history->current_undo_index].point_count = stroke->point_count;
-  history->undos[history->current_undo_index].max_points = stroke->point_count;
-  history->undos[history->current_undo_index].color = stroke->color;
-  history->undos[history->current_undo_index].radius = stroke->radius;
-  history->undos[history->current_undo_index].tool = stroke->tool;
-  history->undos[history->current_undo_index].shape = stroke->shape;
-
-  // Copy the points
-  memcpy(history->undos[history->current_undo_index].points, stroke->points,
-         stroke->point_count * sizeof(Point));
+  // Copy the completed stroke into the undo history
+  history->undos[history->current_undo_index] = *stroke;
 
   // Reinitialize stroke for the next pass
-  free(stroke->points);
   initStroke(stroke);
 }
 
@@ -341,45 +313,38 @@ int main(void) {
       }
     }
 
-    //-Update-canvas------------------------------------------------------------------
-    // update canvas on mouse click
+    // Update the canvas when the mouse is clicked
     Vector2 canvas_mouse = (Vector2){mouse.x - 50, mouse.y};
     Vector2 canvas_prev_mouse = (Vector2){prev_mouse.x - 50, prev_mouse.y};
 
-    // If mouse && prev mouse are on the canvas
     if (canvas_mouse.x > 0 && canvas_prev_mouse.x &&
         IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
       BeginTextureMode(canvas);
       addToStroke(&stroke, canvas_mouse.x, canvas_mouse.y, selected_color,
-                  cursor_radius, tool, brush_shape);
+                  cursor_radius, tool);
 
-      // Check if tool is pencil
       if (strcmp(tool, "pencil") == 0) {
         DrawLineEx(canvas_prev_mouse, canvas_mouse, cursor_radius,
                    colors[selected_color]);
-      } else if (strcmp(tool, "brush") == 0) { // Check if tool is brush
+      } else if (strcmp(tool, "brush") == 0) {
 
         // Check brush shape for circle square or triangle
         if (strcmp(brush_shape, "circle") == 0) {
           DrawCircleV(canvas_mouse, cursor_radius, colors[selected_color]);
         } else if (strcmp(brush_shape, "square") == 0) {
-          DrawRectangleV((Vector2){canvas_mouse.x - cursor_radius,
-                                   canvas_mouse.y - cursor_radius},
-                         (Vector2){cursor_radius * 2, cursor_radius * 2},
+          DrawRectangleV(canvas_mouse, (Vector2){cursor_radius, cursor_radius},
                          colors[selected_color]);
-        } else if (strcmp(brush_shape, "triangle") == 0) { // TODO: Triangle
-          // TODO: Need to calculate the three points on this triangle. We have
-          // the radius of a circle, and the central point of the triangle
-          DrawCircleV(canvas_mouse, cursor_radius, colors[selected_color]);
-        }
+        } else
+          // TODO: Triangle
+          if (strcmp(brush_shape, "triangle") == 0) {
+            DrawCircleV(canvas_mouse, cursor_radius, colors[selected_color]);
+          }
       }
-
       EndTextureMode();
     } else if (stroke.point_count > 0) {
       addUndoStep(&history, &stroke);
     }
     prev_mouse = GetMousePosition();
-    //--------------------------------------------------------------------------------
 
     // Save file with 'ctrl-s'
     if (!is_saving && IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_S)) {
@@ -443,55 +408,17 @@ int main(void) {
                                (float)-canvas.texture.height},
                    (Vector2){50, 0}, WHITE);
 
-    //-Draw-mouse-guide---------------------------------------------------------------
+    // Draw the mouse guide
+    // NOTE: Left shift will show the mouse
     if (mouse.x > 50) {
       HideCursor();
-
-      // Check tool in use
-      if (strcmp(tool, "brush") == 0) {
-
-        // Case circle vvv
-        if (strcmp(brush_shape, "circle") == 0) {
-          DrawCircleV(mouse, cursor_radius, colors[selected_color]);
-          if (selected_color == NUM_COLORS - 1) {
-            DrawCircleLinesV(mouse, cursor_radius + 1, LIGHTGRAY);
-          } else {
-            DrawCircleLinesV(mouse, cursor_radius + 1, BLACK);
-          }
-
-          // Case square vvv
-        } else if (strcmp(brush_shape, "square") == 0) {
-          DrawRectangleV(
-              (Vector2){mouse.x - cursor_radius, mouse.y - cursor_radius},
-              (Vector2){cursor_radius * 2, cursor_radius * 2},
-              colors[selected_color]);
-          if (selected_color == NUM_COLORS - 1) {
-            DrawRectangleLines(mouse.x - cursor_radius, mouse.y - cursor_radius,
-                               cursor_radius * 2 + 1, cursor_radius * 2 + 1,
-                               LIGHTGRAY);
-          } else {
-            DrawRectangleLines(mouse.x - cursor_radius, mouse.y - cursor_radius,
-                               cursor_radius * 2 + 1, cursor_radius * 2 + 1,
-                               BLACK);
-          }
-
-          // Case triangle vvv
-        } else if (strcmp(brush_shape, "triangle") == 0) {
-          // TODO: triangle
-          DrawCircleV(mouse, cursor_radius, colors[selected_color]);
-          if (selected_color == NUM_COLORS - 1) {
-            DrawCircleLinesV(mouse, cursor_radius + 1, LIGHTGRAY);
-          } else {
-            DrawCircleLinesV(mouse, cursor_radius + 1, BLACK);
-          }
-        }
-
-      } else if (strcmp(tool, "pencil") == 0) {
-        // // if pencil: square
-      }
+      DrawCircleV(mouse, cursor_radius, colors[selected_color]);
+      if (selected_color == NUM_COLORS - 1) {
+        DrawCircleLinesV(mouse, cursor_radius + 1, LIGHTGRAY);
+      } else
+        DrawCircleLinesV(mouse, cursor_radius + 1, BLACK);
     } else
       ShowCursor();
-    //--------------------------------------------------------------------------------
 
     // Draw the sidebar
     DrawRectangle(0, 0, 48, window_height, LIGHTGRAY);
@@ -525,7 +452,6 @@ int main(void) {
 
   //-De-Initialization--------------------------------------------------------------
   free(filename);
-  free(stroke.points);
   freeUndoHistory(&history);
   UnloadRenderTexture(canvas);
   CloseWindow();
