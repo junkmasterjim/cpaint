@@ -98,7 +98,8 @@ void initHistory(UndoHistory *history) {
 }
 
 // Adds a point to the current stroke, resizing if necessary
-void addToStroke(Stroke *stroke, int x, int y) {
+void addToStroke(Stroke *stroke, int x, int y, int color, int radius,
+                 char *stroke_tool) {
   // Check if we need to resize points array
   if (stroke->point_count >= stroke->max_points) {
     stroke->max_points *= 2;
@@ -109,9 +110,9 @@ void addToStroke(Stroke *stroke, int x, int y) {
   stroke->points[stroke->point_count].x = x;
   stroke->points[stroke->point_count].y = y;
   stroke->point_count++;
-  stroke->color = selected_color;
-  stroke->radius = cursor_radius;
-  stroke->tool = tool;
+  stroke->color = color;
+  stroke->radius = radius;
+  stroke->tool = stroke_tool;
 }
 
 // Add a completed stroke to the undo history
@@ -305,7 +306,8 @@ int main(void) {
     if (canvas_mouse.x > 0 && canvas_prev_mouse.x &&
         IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
       BeginTextureMode(canvas);
-      addToStroke(&stroke, canvas_mouse.x, canvas_mouse.y);
+      addToStroke(&stroke, canvas_mouse.x, canvas_mouse.y, selected_color,
+                  cursor_radius, tool);
 
       if (strcmp(tool, "pencil") == 0) {
         DrawLineEx(canvas_prev_mouse, canvas_mouse, cursor_radius,
@@ -353,9 +355,16 @@ int main(void) {
           int index = (history.current_undo_index - i + MAX_UNDOS) % MAX_UNDOS;
           Stroke *s = &history.undos[index];
 
-          for (int j = 1; j < s->point_count; j++) {
-            DrawCircleV((Vector2){s->points[j - 1].x, s->points[j - 1].y},
-                        s->radius, colors[s->color]);
+          if (strcmp(s->tool, "brush") == 0) {
+            for (int j = 1; j < s->point_count; j++) {
+              DrawCircleV((Vector2){s->points[j - 1].x, s->points[j - 1].y},
+                          s->radius, colors[s->color]);
+            }
+          } else if (strcmp(s->tool, "pencil") == 0) {
+            for (int j = 1; j < s->point_count; j++) {
+              DrawLineEx(s->points[j - 1], s->points[j], cursor_radius,
+                         colors[s->color]);
+            }
           }
         }
         EndTextureMode();
