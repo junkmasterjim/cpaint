@@ -27,6 +27,9 @@
 
 // FIX: undo should check for shapes when re rendering canvas
 
+// NOTE: I would like to up the max undos to something like 100 or 250 if
+// possible. alternatively if i fix the below im not worried about the maxiumum
+
 // WARNING: The entire canvas is repainted every time we undo based on the undo
 // tree array. Because of this, we
 // end up removing anything not in the array if we are at max undos. i.e.: if we
