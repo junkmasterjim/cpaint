@@ -12,52 +12,102 @@
  *  next color:           'down arrow || right arrow'
  *  previous color:       'up arrow || left arrow'
  *  save:                 'ctrl-s'
- *
- * TODO: paint bucket: 'g'
- * TODO: undo: 'ctrl-z'
- * TODO: redo: 'ctrl-shift-z'
+ *  undo:                 'ctrl-z'
+ *  TODO: redo: 'ctrl-shift-z'
  *
  *  --- compile & run --
  *  clang -o cpaint paint.c -lraylib && ./cpaint
  */
 
 // TODO: Choose background color in settings
+// TODO: maybe paint bucket too
 
-// TODO: add an undo and redo tree? would be cool
-// - If the left mouse button is down:
-//     - Capture the current mouse position (x, y)
-//     - Add this position as a new point to the current stroke
-//       - If the points array is full, use realloc to expand its size
-// - If the left mouse button is not down and there are points in the current
-// stroke:
-//     - The brush stroke is complete, so:
-//         - Save the current stroke as a new undo step in the UndoManager
-//         - Prepare a new empty stroke for the next drawing session
-
-// TODO:
-// - Render the current stroke on the screen if the mouse is down
-// - Render all strokes in the undo history if needed
-// - If an undo is requested, retrieve the most recent stroke from the undo
-// history
-// - Remove the latest stroke and render the canvas without it
-
-// TODO:
-// - If an undo is requested, retrieve the most recent stroke from the undo
-// history
-
-// TODO:
-// - Free all dynamically allocated memory in the UndoManager to prevent memory
-// leaks
-// - Free any remaining points in the current stroke if needed/ - Remove the
-// latest stroke and render the canvas without it
+// TODO: need to implement tool, color, and radius into stroke
 
 #include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-const int NUM_COLORS = 23;
+//-Definitions-&-Constants--------------------------------------------------------
+#define MAX_UNDOS 10         // Max undo steps allowed
+#define INITIAL_CAPACITY 100 // Starting capacity for points in a stroke
+#define NUM_COLORS 23        // The amount of colors available for use
 
+// Struct to store a Point as a (Vector2){int x, y}
+typedef struct Vector2 Point;
+
+// Struct to store brush strokes
+typedef struct {
+  Point *points;   // Dynamic array of points in this stroke
+  int point_count; // Number of points currently stored
+  int max_points;  // Max capacity of *points array
+  char *tool;      // Tool being used 'pencil' or 'brush'
+  int color;       // Color used
+  int radius;      // Radius used
+} Stroke;
+
+// Struct to store undo history
+typedef struct {
+  Stroke undos[MAX_UNDOS]; // Array to store undo steps up to defined max
+  int current_undo_index;  // Current position in undo history
+  int undo_count;          // Total amount of undo steps
+} UndoHistory;
+
+// Init a new Stroke with intiial capacity
+void initStroke(Stroke *stroke) {
+  stroke->points = (Point *)malloc(sizeof(Point) * INITIAL_CAPACITY);
+  stroke->point_count = 0;
+  stroke->max_points = INITIAL_CAPACITY;
+}
+
+// Init undo history
+void initHistory(UndoHistory *history) {
+  history->current_undo_index = -1;
+  history->undo_count = 0;
+}
+
+// Adds a point to the current stroke, resizing if necessary
+void addToStroke(Stroke *stroke, int x, int y) {
+  // Check if we need to resize points array
+  if (stroke->point_count >= stroke->max_points) {
+    stroke->max_points *= 2;
+    stroke->points =
+        (Point *)realloc(stroke->points, stroke->max_points * sizeof(Point));
+  }
+  // Add point to the stroke
+  stroke->points[stroke->point_count].x = x;
+  stroke->points[stroke->point_count].y = y;
+  stroke->point_count++;
+}
+
+// Add a completed stroke to the undo history
+void addUndoStep(UndoHistory *history, Stroke *stroke) {
+  // Advance to next undo step
+  history->current_undo_index = (history->current_undo_index + 1) % MAX_UNDOS;
+  if (history->undo_count < MAX_UNDOS) {
+    history->undo_count++;
+  }
+
+  // Free any existing stroke points in the current undo slot
+  free(history->undos[history->current_undo_index].points);
+
+  // Copy the completed stroke into the undo history
+  history->undos[history->current_undo_index] = *stroke;
+
+  // Reinitialize stroke for the next pass
+  initStroke(stroke);
+}
+
+// Free memory in undo history
+void freeUndoHistory(UndoHistory *history) {
+  for (int i = 0; i < history->undo_count; i++) {
+    free(history->undos[i].points);
+  }
+}
+//--------------------------------------------------------------------------------
+
+//-MAIN-PROGRAM-ENTRY-POINT-------------------------------------------------------
 int main(void) {
   //-Variables----------------------------------------------------------------------
   int window_width = 1280;
@@ -145,6 +195,11 @@ int main(void) {
 
   int selected_color = 22;
   int color_hovered = -1;
+
+  UndoHistory history;
+  Stroke stroke;
+  initStroke(&stroke);
+  initHistory(&history);
   //--------------------------------------------------------------------------------
 
   //-Main-Loop----------------------------------------------------------------------
@@ -234,6 +289,8 @@ int main(void) {
     if (canvas_mouse.x > 0 && canvas_prev_mouse.x &&
         IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
       BeginTextureMode(canvas);
+      addToStroke(&stroke, canvas_mouse.x, canvas_mouse.y);
+
       if (strcmp(tool, "pencil") == 0) {
         DrawLineEx(canvas_prev_mouse, canvas_mouse, cursor_radius,
                    colors[selected_color]);
@@ -241,6 +298,8 @@ int main(void) {
         DrawCircleV(canvas_mouse, cursor_radius, colors[selected_color]);
       }
       EndTextureMode();
+    } else if (stroke.point_count > 0) {
+      addUndoStep(&history, &stroke);
     }
     prev_mouse = GetMousePosition();
 
@@ -262,6 +321,29 @@ int main(void) {
         save_message_counter = 0;
       }
     }
+
+    // Handle undo with 'ctrl-z'
+    if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_Z)) {
+      if (history.undo_count > 0) {
+        // Remove the last stroke
+        history.undo_count--;
+        history.current_undo_index =
+            (history.current_undo_index - 1 + MAX_UNDOS) % MAX_UNDOS;
+        // Redraw the canvas
+        BeginTextureMode(canvas);
+        ClearBackground(colors[0]);
+        for (int i = 0; i < history.undo_count; i++) {
+          int index = (history.current_undo_index - i + MAX_UNDOS) % MAX_UNDOS;
+          Stroke *s = &history.undos[index];
+          for (int j = 1; j < s->point_count; j++) {
+            DrawCircleV((Vector2){s->points[j - 1].x, s->points[j - 1].y},
+                        cursor_radius, colors[selected_color]);
+          }
+        }
+        EndTextureMode();
+      }
+    }
+
     //--------------------------------------------------------------------------------
 
     //-Draw---------------------------------------------------------------------------
@@ -318,6 +400,7 @@ int main(void) {
 
   //-De-Initialization--------------------------------------------------------------
   free(filename);
+  freeUndoHistory(&history);
   UnloadRenderTexture(canvas);
   CloseWindow();
   //--------------------------------------------------------------------------------
