@@ -21,12 +21,14 @@
 
 // TODO: Choose background color in settings
 // TODO: maybe paint bucket too
+// TODO: hold shift to draw a straight line in pencil mode
+// TODO: different shapes for brushes
 
 // NOTE: The entire canvas is repainted every time we undo based on the undo
 // tree array. Because of this, we
 // end up removing anything not in the array if we are at max undos. i.e.: if we
-// have 25 max undos, and 30 strokes in our session, when we hit undo we will
-// remove the most recent action, as well as the first 5 which are no longer in
+// have 25 max undos, and 100 strokes in our session, when we hit undo we will
+// remove the most recent action, as well as the first 75 which are no longer in
 // our array.
 
 #include <raylib.h>
@@ -209,6 +211,7 @@ int main(void) {
     color_rectangles[i].height = window_height / 30.0;
   }
 
+  selected_color = 22;
   int color_hovered = -1;
 
   UndoHistory history;
@@ -383,7 +386,7 @@ int main(void) {
 
     // Draw the mouse guide
     // NOTE: Left shift will show the mouse
-    if (mouse.x > 50 && !IsKeyDown(KEY_LEFT_SHIFT)) {
+    if (mouse.x > 50) {
       HideCursor();
       DrawCircleV(mouse, cursor_radius, colors[selected_color]);
       if (selected_color == NUM_COLORS - 1) {
