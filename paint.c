@@ -422,7 +422,7 @@ int main(void) {
             }
           } else if (strcmp(s->tool, "pencil") == 0) {
             for (int j = 1; j < s->point_count; j++) {
-              DrawLineEx(s->points[j - 1], s->points[j], cursor_radius,
+              DrawLineEx(s->points[j - 1], s->points[j], s->radius,
                          colors[s->color]);
             }
           }
@@ -487,7 +487,10 @@ int main(void) {
         }
 
       } else if (strcmp(tool, "pencil") == 0) {
-        // // if pencil: square
+        DrawRectangleV((Vector2){mouse.x - cursor_radius / 2.0,
+                                 mouse.y - cursor_radius / 2.0},
+                       (Vector2){cursor_radius, cursor_radius},
+                       colors[selected_color]);
       }
     } else
       ShowCursor();
