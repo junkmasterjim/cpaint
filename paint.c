@@ -3,6 +3,7 @@
  *  An MSPaint style application. Written in C with Raylib.
  *
  *  --- controls ---
+ *  show mouse cursor:    'alt'
  *  paint:                'left mouse button'
  *  clear canvas:         'c'
  *  brush:                'b'
@@ -45,7 +46,7 @@
 //-Definitions-&-Constants--------------------------------------------------------
 #define MAX_UNDOS 25         // Max undo steps allowed ( > 25 crashes)
 #define INITIAL_CAPACITY 100 // Starting capacity for points in a stroke
-#define NUM_COLORS 23        // The amount of colors available for use
+#define NUM_COLORS 24        // The amount of colors available for use
 //--------------------------------------------------------------------------------
 
 //-Variables----------------------------------------------------------------------
@@ -59,10 +60,11 @@ Vector2 mouse_wheel;
 char *tool = "brush";
 char *brush_shape = "circle";
 Color colors[NUM_COLORS] = {
-    RAYWHITE,  YELLOW,    GOLD,   ORANGE,     PINK,    RED,
-    MAROON,    GREEN,     LIME,   DARKGREEN,  SKYBLUE, BLUE,
-    DARKBLUE,  PURPLE,    VIOLET, DARKPURPLE, BEIGE,   BROWN,
-    DARKBROWN, LIGHTGRAY, GRAY,   DARKGRAY,   BLACK};
+    WHITE, RAYWHITE,  YELLOW,    GOLD,   ORANGE,     PINK,
+    RED,   MAROON,    GREEN,     LIME,   DARKGREEN,  SKYBLUE,
+    BLUE,  DARKBLUE,  PURPLE,    VIOLET, DARKPURPLE, BEIGE,
+    BROWN, DARKBROWN, LIGHTGRAY, GRAY,   DARKGRAY,   BLACK};
+int background_color = 0;
 int selected_color;
 Rectangle color_rectangles[NUM_COLORS] = {};
 bool is_saving = false;
@@ -385,7 +387,9 @@ int main(void) {
     //--------------------------------------------------------------------------------
 
     // Save file with 'ctrl-s'
-    if (!is_saving && IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_S)) {
+    if (!is_saving &&
+        (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) &&
+        IsKeyPressed(KEY_S)) {
       int r = rand();
       sprintf(filename, "%d.png", r);
 
@@ -404,7 +408,8 @@ int main(void) {
     }
 
     // Handle undo with 'ctrl-z'
-    if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_Z)) {
+    if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) &&
+        IsKeyPressed(KEY_Z)) {
       if (history.undo_count > 0) {
         // Remove the last stroke
         history.undo_count--;
@@ -447,7 +452,8 @@ int main(void) {
                    (Vector2){50, 0}, WHITE);
 
     //-Draw-mouse-guide---------------------------------------------------------------
-    if (mouse.x > 50) {
+    if (mouse.x > 50 &&
+        (!IsKeyDown(KEY_LEFT_ALT) && !IsKeyDown(KEY_RIGHT_ALT))) {
       HideCursor();
 
       // Check tool in use
