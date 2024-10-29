@@ -26,7 +26,11 @@
 // TODO: hold shift to draw a straight line in pencil mode
 // TODO: different shapes for brushes
 
-// FIX: undo should check for shapes when re rendering canvas
+// FIX: need to implement triangles for:
+//- drawing
+//- undo
+
+// NOTE: definitely would like to optimize the code.
 
 // NOTE: I would like to up the max undos to something like 100 or 250 if
 // possible. alternatively if i fix the below im not worried about the maxiumum
@@ -423,11 +427,24 @@ int main(void) {
           int index = (history.current_undo_index - i + MAX_UNDOS) % MAX_UNDOS;
           Stroke *s = &history.undos[index];
 
+          // Check for brush tool
           if (strcmp(s->tool, "brush") == 0) {
             for (int j = 1; j < s->point_count; j++) {
-              DrawCircleV((Vector2){s->points[j - 1].x, s->points[j - 1].y},
-                          s->radius, colors[s->color]);
+              if (strcmp(s->shape, "circle") == 0) {
+                DrawCircleV((Vector2){s->points[j - 1].x, s->points[j - 1].y},
+                            s->radius, colors[s->color]);
+              } else if (strcmp(s->shape, "square") == 0) {
+                DrawRectangleV((Vector2){s->points[j - 1].x - s->radius,
+                                         s->points[j - 1].y - s->radius},
+                               (Vector2){s->radius * 2, s->radius * 2},
+                               colors[s->color]);
+              } else if (strcmp(s->shape, "triangle") == 0) {
+                DrawCircleV((Vector2){s->points[j - 1].x, s->points[j - 1].y},
+                            s->radius, colors[s->color]);
+              }
             }
+
+            // Check for pencil tool
           } else if (strcmp(s->tool, "pencil") == 0) {
             for (int j = 1; j < s->point_count; j++) {
               DrawLineEx(s->points[j - 1], s->points[j], s->radius,
