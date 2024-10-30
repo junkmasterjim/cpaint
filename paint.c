@@ -30,17 +30,7 @@
 //- drawing
 //- undo
 
-// NOTE: definitely would like to optimize the code.
-
-// NOTE: I would like to up the max undos to something like 100 or 250 if
-// possible. alternatively if i fix the below im not worried about the maxiumum
-
-// WARNING: The entire canvas is repainted every time we undo based on the undo
-// tree array. Because of this, we
-// end up removing anything not in the array if we are at max undos. i.e.: if we
-// have 25 max undos, and 100 strokes in our session, when we hit undo we will
-// remove the most recent action, as well as the first 75 which are no longer in
-// our array.
+// NOTE: definitely would like to optimize the code a little bit.
 
 #include <raylib.h>
 #include <stdio.h>
@@ -48,7 +38,7 @@
 #include <string.h>
 
 //-Definitions-&-Constants--------------------------------------------------------
-#define MAX_UNDOS 25         // Max undo steps allowed ( > 25 crashes)
+#define MAX_UNDOS 250        // Max undo steps allowed ( > 25 crashes)
 #define INITIAL_CAPACITY 100 // Starting capacity for points in a stroke
 #define NUM_COLORS 24        // The amount of colors available for use
 //--------------------------------------------------------------------------------
