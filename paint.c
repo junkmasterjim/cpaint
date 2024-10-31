@@ -26,9 +26,7 @@
 // TODO: hold shift to draw a straight line in pencil mode
 // TODO: different shapes for brushes
 
-// FIX: need to implement triangles for:
-//- drawing
-//- undo
+// FIX: fix triangles for undo steps
 
 // NOTE: definitely would like to optimize the code a little bit.
 
@@ -38,7 +36,7 @@
 #include <string.h>
 
 //-Definitions-&-Constants--------------------------------------------------------
-#define MAX_UNDOS 250        // Max undo steps allowed ( > 25 crashes)
+#define MAX_UNDOS 250        // Max undo steps allowed
 #define INITIAL_CAPACITY 100 // Starting capacity for points in a stroke
 #define NUM_COLORS 24        // The amount of colors available for use
 //--------------------------------------------------------------------------------
@@ -366,10 +364,15 @@ int main(void) {
                                    canvas_mouse.y - cursor_radius},
                          (Vector2){cursor_radius * 2, cursor_radius * 2},
                          colors[selected_color]);
-        } else if (strcmp(brush_shape, "triangle") == 0) { // TODO: Triangle
-          // TODO: Need to calculate the three points on this triangle. We have
-          // the radius of a circle, and the central point of the triangle
-          DrawCircleV(canvas_mouse, cursor_radius, colors[selected_color]);
+        } else if (strcmp(brush_shape, "triangle") == 0) {
+          Vector2 v1 =
+              (Vector2){canvas_mouse.x, canvas_mouse.y - cursor_radius};
+          Vector2 v2 = (Vector2){canvas_mouse.x - cursor_radius * 1.3,
+                                 canvas_mouse.y + cursor_radius};
+          Vector2 v3 = (Vector2){canvas_mouse.x + cursor_radius * 1.3,
+                                 canvas_mouse.y + cursor_radius};
+
+          DrawTriangle(v1, v2, v3, colors[selected_color]);
         }
       }
 
@@ -494,11 +497,21 @@ int main(void) {
           // Case triangle vvv
         } else if (strcmp(brush_shape, "triangle") == 0) {
           // TODO: triangle
-          DrawCircleV(mouse, cursor_radius, colors[selected_color]);
+          Vector2 v1 = (Vector2){mouse.x, mouse.y - cursor_radius};
+          Vector2 v2 =
+              (Vector2){mouse.x - cursor_radius * 1.3, mouse.y + cursor_radius};
+          Vector2 v3 =
+              (Vector2){mouse.x + cursor_radius * 1.3, mouse.y + cursor_radius};
+
+          DrawTriangle(v1, v2, v3, colors[selected_color]);
           if (selected_color == NUM_COLORS - 1) {
-            DrawCircleLinesV(mouse, cursor_radius + 1, LIGHTGRAY);
+            DrawTriangleLines((Vector2){v1.x, v1.y - 1},
+                              (Vector2){v2.x - 1, v2.y},
+                              (Vector2){v3.x + 1, v3.y}, LIGHTGRAY);
           } else {
-            DrawCircleLinesV(mouse, cursor_radius + 1, BLACK);
+            DrawTriangleLines((Vector2){v1.x, v1.y - 1},
+                              (Vector2){v2.x + 1, v2.y},
+                              (Vector2){v3.x - 1, v3.y}, BLACK);
           }
         }
 
@@ -512,7 +525,7 @@ int main(void) {
       ShowCursor();
     //--------------------------------------------------------------------------------
 
-    // Draw the sidebar
+    //-Draw-the-sidebar---------------------------------------------------------------
     DrawRectangle(0, 0, 48, window_height, LIGHTGRAY);
     DrawRectangle(48, 0, 2, window_height, GRAY);
 
