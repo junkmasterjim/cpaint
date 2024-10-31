@@ -24,9 +24,9 @@
 // TODO: Choose background color in settings
 // TODO: maybe paint bucket too
 // TODO: hold shift to draw a straight line in pencil mode
-// TODO: different shapes for brushes
+// TODO: allow for resizable window & scale canvas accordingly
 
-// FIX: fix triangles for undo steps
+// FIX: I think theres a bug with undos. needs testing
 
 // NOTE: definitely would like to optimize the code a little bit.
 
@@ -225,6 +225,7 @@ int main(void) {
 
   //-Initialization-----------------------------------------------------------------
   SetConfigFlags(FLAG_WINDOW_UNDECORATED);
+  /*SetConfigFlags(FLAG_WINDOW_RESIZABLE);*/
   InitWindow(window_width, window_height, "cpaint");
 
   RenderTexture2D canvas = LoadRenderTexture(window_width - 50, window_height);
@@ -238,7 +239,7 @@ int main(void) {
     color_rectangles[i].height = window_height / 30.0;
   }
 
-  selected_color = 22;
+  selected_color = 23; // BLACK by default
   int color_hovered = -1;
 
   UndoHistory history;
