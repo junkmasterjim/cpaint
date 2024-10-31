@@ -432,8 +432,13 @@ int main(void) {
                                (Vector2){s->radius * 2, s->radius * 2},
                                colors[s->color]);
               } else if (strcmp(s->shape, "triangle") == 0) {
-                DrawCircleV((Vector2){s->points[j - 1].x, s->points[j - 1].y},
-                            s->radius, colors[s->color]);
+                Vector2 v1 = (Vector2){s->points[j - 1].x,
+                                       s->points[j - 1].y - cursor_radius};
+                Vector2 v2 = (Vector2){s->points[j - 1].x - cursor_radius * 1.3,
+                                       s->points[j - 1].y + cursor_radius};
+                Vector2 v3 = (Vector2){s->points[j - 1].x + cursor_radius * 1.3,
+                                       s->points[j - 1].y + cursor_radius};
+                DrawTriangle(v1, v2, v3, colors[s->color]);
               }
             }
 
@@ -496,7 +501,6 @@ int main(void) {
 
           // Case triangle vvv
         } else if (strcmp(brush_shape, "triangle") == 0) {
-          // TODO: triangle
           Vector2 v1 = (Vector2){mouse.x, mouse.y - cursor_radius};
           Vector2 v2 =
               (Vector2){mouse.x - cursor_radius * 1.3, mouse.y + cursor_radius};
