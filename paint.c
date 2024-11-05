@@ -27,6 +27,10 @@
 // TODO: allow for resizable window & scale canvas accordingly
 
 // FIX: I think theres a bug with undos. needs testing
+// yeah its buggy
+// i want to replace the circular array with a regular one
+// & then we can just pop from the front of the array to undo
+// & redraw the canvas by looping from first to last in the array
 
 // NOTE: definitely would like to optimize the code a little bit.
 
@@ -212,6 +216,13 @@ int main(void) {
     // Draw window dimensions selection
     DrawText(window_width_string, 4, 4, 20, GRAY);
     DrawText(window_height_string, 4, 28, 20, GRAY);
+
+    // TODO: draw the background color squares
+    /*DrawText("Select background color", 4, 56, 20, GRAY);*/
+    /*for (int i = 0; i < NUM_COLORS - 1; i++) {*/
+    /**/
+    /*}*/
+
     DrawText("press 'enter' to accept", 4, 256 - 4, 20, GRAY);
     DrawText("press 'esc' to cancel", 4, 280 - 4, 20, GRAY);
 
@@ -229,7 +240,11 @@ int main(void) {
   InitWindow(window_width, window_height, "cpaint");
 
   RenderTexture2D canvas = LoadRenderTexture(window_width - 50, window_height);
+
+  // Init background color
+  BeginTextureMode(canvas);
   ClearBackground(RAYWHITE);
+  EndTextureMode();
   SetTargetFPS(120);
 
   for (int i = 0; i < NUM_COLORS; i++) {
